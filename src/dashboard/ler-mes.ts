@@ -33,6 +33,7 @@ const VALOR_BOLETO_FUNDACAO = 1865.25;
 const EQUIVALENTE_BOLETO_FUNDACAO = 580;
 
 export interface LancamentoTela {
+  id?: number;
   data: string;
   descricao: string;
   valor: number;
@@ -42,6 +43,7 @@ export interface LancamentoTela {
   categoria: string;
   tipoDeItem: string;
   motivo: string;
+  observacao: string;
 }
 
 export interface TotalCategoria {
@@ -100,16 +102,29 @@ export async function lerMes(diretorio: string, anoMesTexto: string): Promise<Me
   if (!ehAnoMes(anoMesTexto)) return null;
   const arquivo = path.join(diretorio, `gastos-${anoMesTexto}.xlsx`);
   if (!fs.existsSync(arquivo)) return null;
+  return lerArquivoPlanilha(arquivo);
+}
 
+export async function lerArquivoPlanilha(caminho: string): Promise<MesDashboard> {
+  if (!fs.existsSync(caminho)) throw new Error(`Arquivo não encontrado: ${caminho}`);
+  return lerConteudoPlanilha(await fs.promises.readFile(caminho), path.basename(caminho));
+}
+
+export async function lerConteudoPlanilha(conteudo: Buffer, nomeArquivo: string): Promise<MesDashboard> {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(arquivo);
+  await workbook.xlsx.load(conteudo as never);
   const sheet = workbook.getWorksheet('Lançamentos');
   if (!sheet) throw new Error('A planilha não tem a aba Lançamentos.');
 
   const lancamentos = lerLinhas(sheet).sort(
     (a, b) => a.data.localeCompare(b.data) || a.descricao.localeCompare(b.descricao, 'pt-BR'),
   );
-  return montarMes(anoMesTexto, lancamentos);
+  const peloNome = /^gastos-(\d{4}-\d{2})\.xlsx$/i.exec(path.basename(nomeArquivo))?.[1];
+  const anoMesTexto = peloNome && ehAnoMes(peloNome) ? peloNome : lancamentos[0]?.data.slice(0, 7);
+  if (!anoMesTexto || !ehAnoMes(anoMesTexto)) {
+    throw new Error('Não foi possível identificar o mês. Nomeie o arquivo como gastos-AAAA-MM.xlsx.');
+  }
+  return montarDashboard(anoMesTexto, lancamentos);
 }
 
 function ehAnoMes(texto: string): boolean {
@@ -119,7 +134,7 @@ function ehAnoMes(texto: string): boolean {
   return mes >= 1 && mes <= 12;
 }
 
-function montarMes(anoMesTexto: string, lancamentos: LancamentoTela[]): MesDashboard {
+export function montarDashboard(anoMesTexto: string, lancamentos: LancamentoTela[]): MesDashboard {
   const tiposMapa = new Map<string, LancamentoTela[]>();
   for (const lancamento of lancamentos) {
     const grupo = tiposMapa.get(lancamento.tipoDeItem) ?? [];
@@ -179,6 +194,7 @@ function lerLinhas(sheet: ExcelJS.Worksheet): LancamentoTela[] {
   const colunaTipo = exigir(cabecalho, ['Tipo de item'], 'Tipo de item');
   const colunaEquivalente = achar(cabecalho, ['Valor mensal equivalente (R$)', 'Valor mensal equivalente']);
   const colunaMotivo = achar(cabecalho, ['Motivo (perguntar ao usuário)', 'Motivo']);
+  const colunaObservacao = achar(cabecalho, ['Observação', 'Observacao']);
   const lancamentos: LancamentoTela[] = [];
 
   sheet.eachRow((row, numero) => {
@@ -194,6 +210,7 @@ function lerLinhas(sheet: ExcelJS.Worksheet): LancamentoTela[] {
 
     const equivalente = colunaEquivalente ? lerNumero(row.getCell(colunaEquivalente).value) : undefined;
     const motivo = colunaMotivo ? lerTexto(row.getCell(colunaMotivo).value) : '';
+    const observacao = colunaObservacao ? lerTexto(row.getCell(colunaObservacao).value) : '';
     const origemBruta = lerTexto(row.getCell(colunaOrigem).value);
     const categoriaBruta = lerTexto(row.getCell(colunaCategoria).value);
     const tipo = lerTexto(row.getCell(colunaTipo).value);
@@ -211,6 +228,7 @@ function lerLinhas(sheet: ExcelJS.Worksheet): LancamentoTela[] {
       categoria: rotuloCategoria(categoriaBruta),
       tipoDeItem: tipo,
       motivo,
+      observacao,
     });
   });
 

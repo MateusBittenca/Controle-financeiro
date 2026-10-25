@@ -10,14 +10,18 @@
   "scripts": {
     "build": "tsc",
     "dev": "node scripts/dev.mjs",
+    "db:up": "docker compose up -d --wait",
+    "importar": "tsx src/importar.ts",
     "processar": "node dist/cli.js",
     "test": "vitest run"
   },
   "dependencies": {
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.1.4",

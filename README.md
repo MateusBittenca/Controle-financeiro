@@ -11,15 +11,16 @@ npm install
 npm run build
 ```
 
-## Ver o dashboard
+## Banco e dashboard
 
-Com as planilhas do mês em `data/planilhas`:
+O Postgres sobe no Docker. A senha local é só para a sua máquina.
 
 ```bash
+npm run db:up
 npm run dev
 ```
 
-Abre em http://127.0.0.1:5173. A tela só lê os arquivos `gastos-AAAA-MM.xlsx`. Para incluir gastos novos, continue colocando o CSV em `data/entrada` e rodando `npm run processar`.
+O dashboard abre em http://127.0.0.1:5173. A planilha entra pelo botão **Enviar planilha**, no topo da página. O arquivo precisa se chamar `gastos-AAAA-MM.xlsx`. Antes de gravar, a tela confere a planilha com o banco: o que já existe não entra de novo, o que mudou aparece como atualização e o que já está em outro mês fica de fora.
 
 ## Toda sexta-feira
 

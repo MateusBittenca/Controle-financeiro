@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
-import { lerMes, listarMeses } from '../src/dashboard/ler-mes.js';
+import { lerConteudoPlanilha, lerMes, listarMeses } from '../src/dashboard/ler-mes.js';
 
 async function gravar(
   diretorio: string,
@@ -134,6 +134,11 @@ describe('dashboard', () => {
       const mes = await lerMes(diretorio, '2026-10');
       expect(mes).not.toBeNull();
       if (!mes) return;
+
+      const conteudo = await fs.promises.readFile(path.join(diretorio, 'gastos-2026-10.xlsx'));
+      const peloConteudo = await lerConteudoPlanilha(conteudo, 'gastos-2026-10.xlsx');
+      expect(peloConteudo.quantidade).toBe(mes.quantidade);
+      expect(peloConteudo.anoMes).toBe('2026-10');
 
       const posto = mes.lancamentos.find((item) => item.descricao === 'POSTO Exemplo');
       expect(posto?.valorConsiderado).toBe(50);

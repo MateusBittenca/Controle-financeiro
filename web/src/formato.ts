@@ -1,4 +1,5 @@
 export interface LancamentoTela {
+  id?: number;
   data: string;
   descricao: string;
   valor: number;
@@ -8,6 +9,7 @@ export interface LancamentoTela {
   categoria: string;
   tipoDeItem: string;
   motivo: string;
+  observacao: string;
 }
 
 export interface TotalCategoria {
@@ -39,6 +41,27 @@ export interface MesDashboard {
   lancamentos: LancamentoTela[];
   pendenciasSodexo: LancamentoTela[];
   boletosFundacao: LancamentoTela[];
+}
+
+export interface AlteracaoConferencia {
+  antes: LancamentoTela;
+  depois: LancamentoTela;
+  campos: string[];
+}
+
+export interface ConferenciaVisivel {
+  id: string;
+  anoMes: string;
+  rotulo: string;
+  nomeArquivo: string;
+  quantidadePlanilha: number;
+  quantidadeBanco: number;
+  iguais: number;
+  novos: LancamentoTela[];
+  alterados: AlteracaoConferencia[];
+  soNoBanco: LancamentoTela[];
+  emOutroMes: { lancamento: LancamentoTela; anoMes: string; rotulo: string }[];
+  repetidosNaPlanilha: { lancamento: LancamentoTela; vezes: number }[];
 }
 
 export function formatarReais(valor: number): string {
