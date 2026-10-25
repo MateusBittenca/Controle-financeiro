@@ -1,0 +1,19 @@
+# Relatório fictício para demonstrar o sistema. Não contém dados bancários reais.
+date,title,amount,origem
+2026-09-30,EXEMPLO FICTICIO - Netflix.com,"39,90",credito
+2026-10-03,EXEMPLO FICTICIO - Apple.Com/Bill,"34,90",credito
+2026-10-03,EXEMPLO FICTICIO - Microsoft*Subscription,"45,00",credito
+2026-10-06,EXEMPLO FICTICIO - Cursor Ai Powered Ide,"80,00",credito
+2026-10-06,EXEMPLO FICTICIO - IOF de compra internacional,"4,37",credito
+2026-10-07,EXEMPLO FICTICIO - POSTO Exemplo,"220,00",credito
+2026-10-08,EXEMPLO FICTICIO - iFood,"42,50",debito
+2026-10-08,EXEMPLO FICTICIO - Drogaria Exemplo,"28,90",debito
+2026-10-09,EXEMPLO FICTICIO - Sodexo,"36,00",credito
+2026-10-10,EXEMPLO FICTICIO - Sodexo,"18,50",debito
+2026-10-15,EXEMPLO FICTICIO - Boleto Fundação Valeparaibana de Ensino,"1.865,25",boleto
+2026-10-16,EXEMPLO FICTICIO - Pix para João Exemplo,"150,00",pix
+2026-10-17,EXEMPLO FICTICIO - Mercado Bairro,"312,40",credito
+2026-10-18,EXEMPLO FICTICIO - Uber Trip,"27,80",credito
+2026-10-20,EXEMPLO FICTICIO - Smart Fit,"99,90",debito
+2026-10-21,EXEMPLO FICTICIO - Amazon Loja Exemplo,"89,00",credito
+2026-10-24,EXEMPLO FICTICIO - Pagamento de fatura,"-3.500,00",credito
