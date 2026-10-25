@@ -1,8 +1,18 @@
 import http from 'node:http';
 import path from 'node:path';
+import { identidadeDoGasto, montarGastoManual } from './dashboard/gasto-manual.js';
+import { montarDashboard } from './dashboard/ler-mes.js';
 import { gerarPlanilhaEntrada, nomeDoArquivo } from './dashboard/exportar.js';
 import { abrirConferencia, confirmarConferencia } from './db/conferencias.js';
-import { listarMesesNoBanco, lerMesNoBanco, responderLancamento } from './db/lancamentos.js';
+import {
+  atualizarLancamento,
+  contarGastosIguais,
+  excluirLancamento,
+  inserirLancamento,
+  listarMesesNoBanco,
+  lerMesNoBanco,
+  responderLancamento,
+} from './db/lancamentos.js';
 
 const porta = 8787;
 
@@ -43,6 +53,43 @@ const server = http.createServer(async (req, res) => {
     }
 
     const resposta = /^\/api\/meses\/(\d{4}-\d{2})\/lancamentos\/(\d+)$/.exec(url.pathname);
+    if (req.method === 'DELETE' && resposta?.[1] && resposta[2]) {
+      const apagou = await excluirLancamento(resposta[1], Number(resposta[2]));
+      if (!apagou) {
+        responder(res, 404, { erro: 'Lançamento não encontrado.' });
+        return;
+      }
+      const mes = (await lerMesNoBanco(resposta[1])) ?? montarDashboard(resposta[1], []);
+      res.end(JSON.stringify(mes));
+      return;
+    }
+
+    if (req.method === 'PUT' && resposta?.[1] && resposta[2]) {
+      let pedido: unknown;
+      try {
+        pedido = JSON.parse((await lerCorpo(req, 64 * 1024)).toString('utf8'));
+      } catch {
+        responder(res, 400, { erro: 'Não foi possível ler o gasto.' });
+        return;
+      }
+      try {
+        if (!pedido || typeof pedido !== 'object') throw new Error('Não foi possível ler o gasto.');
+        const gasto = montarGastoManual(pedido);
+        const gravou = await atualizarLancamento(resposta[1], Number(resposta[2]), gasto.lancamento, gasto.anoMes);
+        if (!gravou) {
+          responder(res, 404, { erro: 'Lançamento não encontrado.' });
+          return;
+        }
+        const mes = (await lerMesNoBanco(gasto.anoMes)) ?? montarDashboard(gasto.anoMes, []);
+        res.end(JSON.stringify(mes));
+      } catch (erro) {
+        const texto = erro instanceof Error ? erro.message : 'Não foi possível gravar o gasto.';
+        if (texto.includes('ECONNREFUSED') || texto.includes('timeout') || texto.includes('ENOTFOUND')) throw erro;
+        responder(res, 400, { erro: texto });
+      }
+      return;
+    }
+
     if (req.method === 'PATCH' && resposta?.[1] && resposta[2]) {
       const pedido = JSON.parse((await lerCorpo(req, 64 * 1024)).toString('utf8')) as {
         motivo?: unknown;
@@ -70,6 +117,54 @@ const server = http.createServer(async (req, res) => {
       }
       const mes = await lerMesNoBanco(resposta[1]);
       res.end(JSON.stringify(mes));
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/lancamentos/iguais') {
+      try {
+        const identidade = identidadeDoGasto({
+          data: url.searchParams.get('data') ?? '',
+          descricao: url.searchParams.get('descricao') ?? '',
+          valor: url.searchParams.get('valor') ?? '',
+          origem: url.searchParams.get('origem') ?? '',
+        });
+        const ignorarTexto = url.searchParams.get('ignorar');
+        const ignorar = ignorarTexto ? Number(ignorarTexto) : undefined;
+        const quantidade = await contarGastosIguais(
+          identidade.data,
+          identidade.descricao,
+          identidade.valor,
+          identidade.origem,
+          ignorar !== undefined && Number.isInteger(ignorar) ? ignorar : undefined,
+        );
+        res.end(JSON.stringify({ quantidade }));
+      } catch (erro) {
+        const texto = erro instanceof Error ? erro.message : 'Não foi possível conferir o gasto.';
+        if (texto.includes('ECONNREFUSED') || texto.includes('timeout') || texto.includes('ENOTFOUND')) throw erro;
+        responder(res, 400, { erro: texto });
+      }
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/lancamentos') {
+      let pedido: unknown;
+      try {
+        pedido = JSON.parse((await lerCorpo(req, 64 * 1024)).toString('utf8'));
+      } catch {
+        responder(res, 400, { erro: 'Não foi possível ler o gasto.' });
+        return;
+      }
+      try {
+        if (!pedido || typeof pedido !== 'object') throw new Error('Não foi possível ler o gasto.');
+        const gasto = montarGastoManual(pedido);
+        await inserirLancamento(gasto.anoMes, gasto.lancamento);
+        const mes = await lerMesNoBanco(gasto.anoMes);
+        res.end(JSON.stringify(mes));
+      } catch (erro) {
+        const texto = erro instanceof Error ? erro.message : 'Não foi possível gravar o gasto.';
+        if (texto.includes('ECONNREFUSED') || texto.includes('timeout') || texto.includes('ENOTFOUND')) throw erro;
+        responder(res, 400, { erro: texto });
+      }
       return;
     }
 

@@ -94,6 +94,81 @@ export async function responderLancamento(
   return (resultado.rowCount ?? 0) > 0;
 }
 
+export async function atualizarLancamento(
+  anoMes: string,
+  id: number,
+  item: LancamentoTela,
+  anoMesNovo: string,
+): Promise<boolean> {
+  const resultado = await pool.query(
+    `UPDATE lancamentos SET
+      ano_mes = $1, data = $2, descricao = $3, valor = $4, valor_mensal_equivalente = $5,
+      origem = $6, categoria = $7, tipo_de_item = $8, motivo = $9, observacao = $10
+     WHERE id = $11 AND ano_mes = $12`,
+    [
+      anoMesNovo,
+      item.data,
+      item.descricao,
+      item.valor,
+      item.valorMensalEquivalente,
+      item.origem,
+      item.categoria,
+      item.tipoDeItem,
+      item.motivo,
+      item.observacao,
+      id,
+      anoMes,
+    ],
+  );
+  return (resultado.rowCount ?? 0) > 0;
+}
+
+export async function excluirLancamento(anoMes: string, id: number): Promise<boolean> {
+  const resultado = await pool.query('DELETE FROM lancamentos WHERE id = $1 AND ano_mes = $2', [id, anoMes]);
+  return (resultado.rowCount ?? 0) > 0;
+}
+
+export async function contarGastosIguais(
+  data: string,
+  descricao: string,
+  valor: number,
+  origem: string,
+  ignorarId?: number,
+): Promise<number> {
+  const resultado = await pool.query<{ quantidade: number }>(
+    `SELECT COUNT(*)::int AS quantidade
+     FROM lancamentos
+     WHERE data = $1 AND descricao = $2 AND valor = $3 AND origem = $4
+       AND ($5::bigint IS NULL OR id <> $5)`,
+    [data, descricao, valor, origem, ignorarId ?? null],
+  );
+  return resultado.rows[0]?.quantidade ?? 0;
+}
+
+export async function inserirLancamento(anoMes: string, item: LancamentoTela): Promise<number> {
+  const resultado = await pool.query<{ id: string }>(
+    `INSERT INTO lancamentos
+      (ano_mes, data, descricao, valor, valor_mensal_equivalente, origem, categoria, tipo_de_item, motivo, observacao)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     RETURNING id`,
+    [
+      anoMes,
+      item.data,
+      item.descricao,
+      item.valor,
+      item.valorMensalEquivalente,
+      item.origem,
+      item.categoria,
+      item.tipoDeItem,
+      item.motivo,
+      item.observacao,
+    ],
+  );
+  const id = resultado.rows[0]?.id;
+  if (id === undefined) throw new Error('Não foi possível gravar o gasto.');
+  return Number(id);
+}
+
 interface LinhaLancamento {
   id?: string | number;
   data: string;

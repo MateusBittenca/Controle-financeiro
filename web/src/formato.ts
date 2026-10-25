@@ -74,6 +74,13 @@ export function formatarData(iso: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+export function formatarPercentual(parte: number, total: number): string {
+  if (total <= 0 || parte <= 0) return '0%';
+  const percentual = (parte / total) * 100;
+  if (percentual < 0.1) return '< 0,1%';
+  return `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(percentual)}%`;
+}
+
 export function textoQuantidade(quantidade: number): string {
   return quantidade === 1 ? '1 lançamento' : `${quantidade} lançamentos`;
 }

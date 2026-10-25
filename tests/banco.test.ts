@@ -6,7 +6,15 @@ import pg from 'pg';
 import { afterAll, describe, expect, it } from 'vitest';
 import { lerArquivoPlanilha } from '../src/dashboard/ler-mes.js';
 import { pool, urlDoBanco } from '../src/db/cliente.js';
-import { lerMesNoBanco, responderLancamento, substituirMes } from '../src/db/lancamentos.js';
+import {
+  atualizarLancamento,
+  contarGastosIguais,
+  excluirLancamento,
+  inserirLancamento,
+  lerMesNoBanco,
+  responderLancamento,
+  substituirMes,
+} from '../src/db/lancamentos.js';
 
 const MES_TESTE = '1999-01';
 
@@ -97,6 +105,41 @@ describe.skipIf(!disponivel)('banco', () => {
       expect(depois?.pendenciasSodexo).toHaveLength(0);
     } finally {
       await substituirMes(MES_TESTE, []);
+    }
+  });
+
+  it('atualiza, conta iguais e exclui o lançamento', async () => {
+    const mes = '1999-06';
+    const gasto = {
+      data: '1999-06-03',
+      descricao: 'Posto exemplo',
+      valor: 12.5,
+      valorMensalEquivalente: null,
+      valorConsiderado: 12.5,
+      origem: 'Débito',
+      categoria: 'Gasolina',
+      tipoDeItem: 'Combustível',
+      motivo: '',
+      observacao: '',
+    };
+    try {
+      const id = await inserirLancamento(mes, gasto);
+      const copia = await inserirLancamento(mes, gasto);
+      expect(await contarGastosIguais(gasto.data, gasto.descricao, gasto.valor, gasto.origem)).toBe(2);
+      expect(await contarGastosIguais(gasto.data, gasto.descricao, gasto.valor, gasto.origem, id)).toBe(1);
+
+      const alterado = { ...gasto, descricao: 'Posto alterado', valor: 20, valorConsiderado: 20 };
+      expect(await atualizarLancamento(mes, id, alterado, mes)).toBe(true);
+      const depois = await lerMesNoBanco(mes);
+      const gravado = depois?.lancamentos.find((item) => item.id === id);
+      expect(gravado?.descricao).toBe('Posto alterado');
+      expect(gravado?.valor).toBe(20);
+
+      expect(await excluirLancamento(mes, id)).toBe(true);
+      expect(await excluirLancamento(mes, copia)).toBe(true);
+      expect(await lerMesNoBanco(mes)).toBeNull();
+    } finally {
+      await substituirMes(mes, []);
     }
   });
 });
