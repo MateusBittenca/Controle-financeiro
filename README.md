@@ -11,6 +11,16 @@ npm install
 npm run build
 ```
 
+## Ver o dashboard
+
+Com as planilhas do mês em `data/planilhas`:
+
+```bash
+npm run dev
+```
+
+Abre em http://127.0.0.1:5173. A tela só lê os arquivos `gastos-AAAA-MM.xlsx`. Para incluir gastos novos, continue colocando o CSV em `data/entrada` e rodando `npm run processar`.
+
 ## Toda sexta-feira
 
 1. Exporte o relatório em CSV com as colunas `date`, `title` e `amount`.
